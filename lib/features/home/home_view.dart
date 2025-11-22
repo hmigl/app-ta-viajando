@@ -1,128 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ta_viajando_app/features/global/configuration_drawer.dart';
+import 'package:ta_viajando_app/features/trips/presentation/add_trip_modal.dart';
+import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart';
 
-class HomeView extends ConsumerStatefulWidget {
+class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
   @override
-  ConsumerState<HomeView> createState() => _HomeViewState();
-}
-
-class _HomeViewState extends ConsumerState<HomeView> {
-  @override
-  void initState() {
-    super.initState();
-    setState(() {
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripsAsync = ref.watch(tripsControllerProvider);
 
     return Scaffold(
-      drawerEnableOpenDragGesture: false,
-      drawer: ConfigurationDrawer(),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      SizedBox(width: 5),
-                      Icon(Icons.airplane_ticket_rounded, size: 32),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            ' Ta viajando é?',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Builder(
-                    builder: (context) => IconButton(
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                      icon: const Icon(Icons.settings),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                            Text(
-                              'Bem vindo!',
-                              style: TextStyle(
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                       
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () async {
-                       
-                      },
-                      label: const Text('Organizar nova viagem'),
-                      icon: const Icon(Icons.travel_explore),
-
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-            ],
-          ),
-        ),
+      appBar: AppBar(
+        title: const Text('Tá viajando, é?'),
+        centerTitle: false,
       ),
-    );
-  }
-
-  TableRow _buildTableRow(String label, String value) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: Text(value),
-        ),
-      ],
+      drawer: const ConfigurationDrawer(),
+      body: tripsAsync.when(
+        data: (trips) {
+          if (trips.isEmpty) {
+            return const Center(child: Text('Nenhuma viagem planejada ainda.'));
+          }
+          return ListView.builder(
+            itemCount: trips.length,
+            padding: const EdgeInsets.all(8),
+            itemBuilder: (context, index) {
+              final trip = trips[index];
+              return Card(
+                child: ListTile(
+                  leading: const Icon(Icons.flight_takeoff),
+                  title: Text(trip.title),
+                  subtitle: Text("${trip.destination} - ${trip.startDate?.day}/${trip.startDate?.month}"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      ref.read(tripsControllerProvider.notifier).deleteTrip(trip.id);
+                    },
+                  ),
+                  onTap: () {
+                    // Futuro: Ir para detalhes (Escopo 2)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Abrir viagem: ${trip.title}')),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Erro: $err')),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (_) => const AddTripModal(),
+          );
+        },
+        label: const Text('Nova Viagem'),
+        icon: const Icon(Icons.add),
+      ),
     );
   }
 }

@@ -48,3 +48,6 @@ supabase_options.dart
 *.freezed.dart
 
 /core/services/supabase_options.dart
+
+# FVM Version Cache
+.fvm/
