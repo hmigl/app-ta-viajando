@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ta_viajando_app/features/global/configuration_drawer.dart';
 import 'package:ta_viajando_app/features/trips/presentation/add_trip_modal.dart';
-import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart';
+import 'package:ta_viajando_app/features/trips/providers/trips_list_provider.dart';
+import 'package:ta_viajando_app/features/trips/screens/trip_details_screen.dart';
+
 
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tripsAsync = ref.watch(tripsControllerProvider);
+    final tripsAsync = ref.watch(tripsListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,13 +37,17 @@ class HomeView extends ConsumerWidget {
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      ref.read(tripsControllerProvider.notifier).deleteTrip(trip.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Funcionalidade de deletar a ser implementada.')),
+                      );
                     },
                   ),
                   onTap: () {
-                    // Futuro: Ir para detalhes (Escopo 2)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Abrir viagem: ${trip.title}')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TripDetailsScreen(tripId: trip.id),
+                      ),
                     );
                   },
                 ),
