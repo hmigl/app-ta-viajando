@@ -10,6 +10,7 @@ class RegisterView extends ConsumerWidget {
 
     final _emailController = TextEditingController();
     final _passwordController = TextEditingController();
+    final _nameController = TextEditingController(); 
   
     return Scaffold( 
       appBar: AppBar(title: const Text('Register')),
@@ -17,6 +18,10 @@ class RegisterView extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Full Name'),
+            ),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -26,13 +31,17 @@ class RegisterView extends ConsumerWidget {
               decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
+            
+            
 
             SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: () async { 
-                try{
-                if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+              onPressed: () async {
+                try {
+                  if (_emailController.text.isEmpty || 
+                      _passwordController.text.isEmpty || 
+                      _nameController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Por favor, preencha todos os campos'),
@@ -42,9 +51,10 @@ class RegisterView extends ConsumerWidget {
                     return;
                   }
                 await ref.read(authProvider.notifier).signUpWithEmailAndPassword(
-                _emailController.text,
-                _passwordController.text,
-              );
+                    _emailController.text,
+                    _passwordController.text,
+                    _nameController.text, 
+                  );
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

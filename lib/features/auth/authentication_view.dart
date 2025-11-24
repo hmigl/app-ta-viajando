@@ -8,10 +8,9 @@ class AuthenticationView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final _emailController = TextEditingController();
     final _passwordController = TextEditingController();
-  
+
     return Scaffold(
       appBar: AppBar(title: const Text('Sign In')),
       body: Center(
@@ -27,38 +26,38 @@ class AuthenticationView extends ConsumerWidget {
               decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
-
-            SizedBox(height: 40),
-
+            const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () async {
                 try {
-                if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                      content: Text('Por favor, preencha todos os campos'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-                await ref.read(authProvider.notifier).signInWithEmailAndPassword(
-                _emailController.text,
-                _passwordController.text,
-              );
-              if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                      content: Text('Logado com sucesso!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-               }       
-              } catch (error) {
-                if (context.mounted) {
+                  if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Por favor, preencha todos os campos'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  
+                  await ref.read(authProvider.notifier).signInWithEmailAndPassword(
+                        _emailController.text,
+                        _passwordController.text,
+                      );
+                  
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Logado com sucesso!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (error) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Erro ao criar conta: ${error.toString()}'),
+                        content: Text('Erro ao entrar: ${error.toString()}'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -67,17 +66,17 @@ class AuthenticationView extends ConsumerWidget {
               },
               child: const Text('Sign in'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
               child: const Text('Sign in with Google'),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const RegisterView(), 
+                  builder: (context) => const RegisterView(),
                 ),
               ),
               child: const Text(

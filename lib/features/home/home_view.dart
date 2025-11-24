@@ -5,7 +5,6 @@ import 'package:ta_viajando_app/features/trips/presentation/add_trip_modal.dart'
 import 'package:ta_viajando_app/features/trips/providers/trips_list_provider.dart';
 import 'package:ta_viajando_app/features/trips/screens/trip_details_screen.dart';
 
-
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
@@ -16,13 +15,14 @@ class HomeView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tá viajando, é?'),
-        centerTitle: false,
       ),
       drawer: const ConfigurationDrawer(),
       body: tripsAsync.when(
         data: (trips) {
           if (trips.isEmpty) {
-            return const Center(child: Text('Nenhuma viagem planejada ainda.'));
+            return const Center(
+              child: Text('Nenhuma viagem encontrada.\nCrie uma nova abaixo!', textAlign: TextAlign.center),
+            );
           }
           return ListView.builder(
             itemCount: trips.length,
@@ -30,18 +30,18 @@ class HomeView extends ConsumerWidget {
             itemBuilder: (context, index) {
               final trip = trips[index];
               return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
-                  leading: const Icon(Icons.flight_takeoff),
-                  title: Text(trip.title),
-                  subtitle: Text("${trip.destination} - ${trip.startDate?.day}/${trip.startDate?.month}"),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Funcionalidade de deletar a ser implementada.')),
-                      );
-                    },
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blueAccent,
+                    child: Text(trip.destination[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
                   ),
+                  title: Text(trip.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(
+                    "${trip.destination} • ${trip.startDate != null ? '${trip.startDate!.day}/${trip.startDate!.month}' : 'Sem data'}",
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -56,7 +56,10 @@ class HomeView extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Erro: $err')),
+        error: (err, stack) {
+          debugPrint('Erro na Home: $err');
+          return Center(child: Text('Erro ao carregar viagens: $err'));
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

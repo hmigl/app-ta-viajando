@@ -37,14 +37,15 @@ class Auth extends _$Auth {
     }
   }
 
-  Future<void> signUpWithEmailAndPassword(String email, String password) async {
+  Future<void> signUpWithEmailAndPassword(String email, String password, String fullName) async {
     try {
       await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
+        data: {'full_name': fullName},
       );
     } catch (e) {
-      debugPrint('Error signing up with email and password: $e');
+      debugPrint('Error signing up: $e');
       rethrow;
     }
   }
