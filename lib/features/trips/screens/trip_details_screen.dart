@@ -39,6 +39,8 @@ class TripDetailsScreen extends ConsumerWidget {
                       .read(tripsRepositoryProvider)
                       .addParticipantByEmail(tripId, controller.text.trim());
                   if (context.mounted) {
+                    Navigator.pop(context);
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Convite enviado!'),
