@@ -1,5 +1,7 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart';
 
@@ -17,6 +19,19 @@ class _AddTripModalState extends ConsumerState<AddTripModal> {
   
   DateTime _startDate = DateTime.now();
   DateTime? _endDate; // Pode ser nulo se não definido
+  
+  Uint8List? _selectedImageBytes;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery); // Ou .camera
+    if (picked != null) {
+      final bytes = await picked.readAsBytes(); // <--- MUDANÇA IMPORTANTE
+      setState(() {
+        _selectedImageBytes = bytes;
+      });
+    }
+  }
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final picked = await showDatePicker(
@@ -66,6 +81,7 @@ class _AddTripModalState extends ConsumerState<AddTripModal> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
         left: 16, right: 16, top: 16,
       ),
+
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -74,17 +90,48 @@ class _AddTripModalState extends ConsumerState<AddTripModal> {
             children: [
               Text('Nova Viagem', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 16),
+
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                    image: _selectedImageBytes != null
+                        ? DecorationImage(
+                            image: MemoryImage(_selectedImageBytes!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _selectedImageBytes == null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+                            Text('Adicionar Capa', style: TextStyle(color: Colors.grey)),
+                          ],
+                        )
+                      : null,
+                ),
+              ),
+              
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Título', border: OutlineInputBorder()),
                 validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
               ),
+
               const SizedBox(height: 10),
               TextFormField(
                 controller: _destController,
                 decoration: const InputDecoration(labelText: 'Destino', border: OutlineInputBorder()),
                 validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
               ),
+
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -95,6 +142,7 @@ class _AddTripModalState extends ConsumerState<AddTripModal> {
                       onPressed: () => _selectDate(context, true),
                     ),
                   ),
+
                   const SizedBox(width: 10),
                   const Icon(Icons.arrow_forward),
                   const SizedBox(width: 10),
@@ -107,6 +155,7 @@ class _AddTripModalState extends ConsumerState<AddTripModal> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -118,6 +167,7 @@ class _AddTripModalState extends ConsumerState<AddTripModal> {
                         destination: _destController.text,
                         startDate: _startDate,
                         endDate: _endDate,
+                        coverImageBytes: _selectedImageBytes,
                       );
                     }
                   },
