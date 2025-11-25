@@ -9,7 +9,6 @@ class TripDetailsScreen extends ConsumerWidget {
 
   const TripDetailsScreen({super.key, required this.tripId});
 
-
   void _showAddParticipantDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
     showDialog(
@@ -25,25 +24,37 @@ class TripDetailsScreen extends ConsumerWidget {
           keyboardType: TextInputType.emailAddress,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 try {
-                  Navigator.pop(context); // Fecha antes para evitar travamento visual
-                  await ref.read(tripsRepositoryProvider).addParticipantByEmail(
-                    tripId, 
-                    controller.text.trim()
-                  );
+                  Navigator.pop(
+                    context,
+                  ); // Fecha antes para evitar travamento visual
+                  await ref
+                      .read(tripsRepositoryProvider)
+                      .addParticipantByEmail(tripId, controller.text.trim());
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Convite enviado!'), backgroundColor: Colors.green),
+                      const SnackBar(
+                        content: Text('Convite enviado!'),
+                        backgroundColor: Colors.green,
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro: ${e.toString().replaceAll("Exception:", "")}'), backgroundColor: Colors.red),
+                      SnackBar(
+                        content: Text(
+                          'Erro: ${e.toString().replaceAll("Exception:", "")}',
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
                     );
                   }
                 }
@@ -56,7 +67,12 @@ class TripDetailsScreen extends ConsumerWidget {
     );
   }
 
-  void _showTaskDialog(BuildContext context, WidgetRef ref, {String? taskId, String? currentTitle}) {
+  void _showTaskDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    String? taskId,
+    String? currentTitle,
+  }) {
     final controller = TextEditingController(text: currentTitle);
     final isEditing = taskId != null;
 
@@ -66,20 +82,54 @@ class TripDetailsScreen extends ConsumerWidget {
         title: Text(isEditing ? 'Editar Tarefa' : 'Nova Tarefa'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Ex: Comprar protetor solar'),
+          decoration: const InputDecoration(
+            hintText: 'Ex: Comprar protetor solar',
+          ),
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           TextButton(
-            onPressed: () {
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
               if (controller.text.isNotEmpty) {
-                if (isEditing) {
-                  ref.read(tripsRepositoryProvider).updateTaskTitle(taskId, controller.text);
-                } else {
-                  ref.read(tripsRepositoryProvider).addTask(tripId, controller.text);
+                try {
+                  if (isEditing) {
+                    await ref
+                        .read(tripsRepositoryProvider)
+                        .updateTaskTitle(taskId, controller.text);
+                  } else {
+                    await ref
+                        .read(tripsRepositoryProvider)
+                        .addTask(tripId, controller.text);
+                  }
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isEditing ? 'Tarefa Atualizada!' : 'Tarefa criada!',
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Erro: ${e.toString().replaceAll("Exception:", "")}',
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
-                Navigator.pop(context);
               }
             },
             child: Text(isEditing ? 'Salvar' : 'Adicionar'),
@@ -96,7 +146,10 @@ class TripDetailsScreen extends ConsumerWidget {
         title: const Text('Excluir tarefa?'),
         content: const Text('Essa ação não pode ser desfeita.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () {
               ref.read(tripsRepositoryProvider).deleteTask(taskId);
@@ -137,27 +190,38 @@ class TripDetailsScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
-                Text(trip.destination, style: Theme.of(context).textTheme.headlineMedium),
+                Text(
+                  trip.destination,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
                 if (trip.startDate != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
                       '${DateFormat('dd/MM').format(trip.startDate!)} - ${trip.endDate != null ? DateFormat('dd/MM/yyyy').format(trip.endDate!) : '?'}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.grey[700],
+                      ),
                     ),
                   ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Participantes', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Participantes',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     IconButton(
-                      icon: const Icon(Icons.person_add_alt_1, color: Colors.blue),
+                      icon: const Icon(
+                        Icons.person_add_alt_1,
+                        color: Colors.blue,
+                      ),
                       onPressed: () => _showAddParticipantDialog(context, ref),
                       tooltip: "Adicionar participante",
-                    )
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -165,37 +229,52 @@ class TripDetailsScreen extends ConsumerWidget {
                   spacing: 8.0,
                   runSpacing: 8.0,
                   children: [
-                    ...trip.participants.map((name) => Chip(
-                          avatar: CircleAvatar(
-                            backgroundColor: Colors.blue.shade100,
-                            child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 12)),
+                    ...trip.participants.map(
+                      (name) => Chip(
+                        avatar: CircleAvatar(
+                          backgroundColor: Colors.blue.shade100,
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: const TextStyle(fontSize: 12),
                           ),
-                          label: Text(name),
-                        )),
+                        ),
+                        label: Text(name),
+                      ),
+                    ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Checklist', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Checklist',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     Text(
                       '${trip.tasks.where((t) => t.isCompleted).length}/${trip.tasks.length}',
-                      style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 const Divider(),
-                
+
                 if (trip.tasks.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(32.0),
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.checklist_rtl, size: 48, color: Colors.grey),
+                          Icon(
+                            Icons.checklist_rtl,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                           SizedBox(height: 8),
                           Text('Nenhuma tarefa ainda.'),
                         ],
@@ -215,26 +294,40 @@ class TripDetailsScreen extends ConsumerWidget {
                     ),
                     confirmDismiss: (direction) async {
                       _confirmDeleteTask(context, ref, task.id);
-                      return false; 
+                      return false;
                     },
                     child: ListTile(
                       leading: Checkbox(
                         value: task.isCompleted,
                         onChanged: (bool? value) {
-                          ref.read(tripsRepositoryProvider).toggleTask(task.id, value!);
+                          ref
+                              .read(tripsRepositoryProvider)
+                              .toggleTask(task.id, value!);
                         },
                       ),
                       title: Text(
                         task.title,
                         style: TextStyle(
-                          decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
                           color: task.isCompleted ? Colors.grey : null,
                         ),
                       ),
-                      onLongPress: () => _showTaskDialog(context, ref, taskId: task.id, currentTitle: task.title),
+                      onLongPress: () => _showTaskDialog(
+                        context,
+                        ref,
+                        taskId: task.id,
+                        currentTitle: task.title,
+                      ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                        onPressed: () => _confirmDeleteTask(context, ref, task.id),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () =>
+                            _confirmDeleteTask(context, ref, task.id),
                       ),
                     ),
                   );
