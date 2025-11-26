@@ -5,13 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ta_viajando_app/features/trips/data/trips_repository.dart';
-import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart'; 
+import 'package:ta_viajando_app/features/trips/domain/trip.dart';
+import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart';
 import 'package:ta_viajando_app/features/trips/providers/trip_provider.dart';
 
-class TripDetailsScreen extends ConsumerWidget {
+class TripDetailsScreen extends ConsumerStatefulWidget {
   final String tripId;
 
   const TripDetailsScreen({super.key, required this.tripId});
+
+  @override
+  ConsumerState<TripDetailsScreen> createState() => _TripDetailsScreenState();
+}
+
+class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
+  Trip? _localTrip;
 
   void _showAddParticipantDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
@@ -36,12 +44,12 @@ class TripDetailsScreen extends ConsumerWidget {
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 try {
-                  Navigator.pop(
-                      context); // Fecha antes para evitar travamento visual
+                  Navigator.pop(context);
                   await ref.read(tripsRepositoryProvider).addParticipantByEmail(
-                        tripId,
+                        widget.tripId,
                         controller.text.trim(),
                       );
+                  ref.invalidate(tripDetailsProvider(widget.tripId));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -100,8 +108,9 @@ class TripDetailsScreen extends ConsumerWidget {
                 } else {
                   ref
                       .read(tripsRepositoryProvider)
-                      .addTask(tripId, controller.text);
+                      .addTask(widget.tripId, controller.text);
                 }
+                ref.invalidate(tripDetailsProvider(widget.tripId));
                 Navigator.pop(context);
               }
             },
@@ -126,6 +135,7 @@ class TripDetailsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () {
               ref.read(tripsRepositoryProvider).deleteTask(taskId);
+              ref.invalidate(tripDetailsProvider(widget.tripId));
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -142,8 +152,7 @@ class TripDetailsScreen extends ConsumerWidget {
 
     if (picked != null) {
       final bytes = await picked.readAsBytes();
-      // Chama o controller para atualizar
-      ref.read(tripsControllerProvider.notifier).updateImage(tripId, bytes);
+      ref.read(tripsControllerProvider.notifier).updateImage(widget.tripId, bytes);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,20 +162,18 @@ class TripDetailsScreen extends ConsumerWidget {
     }
   }
 
-  // --- UI ---
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tripDetails = ref.watch(tripDetailsProvider(tripId));
+  Widget build(BuildContext context) {
+    final tripDetails = ref.watch(tripDetailsProvider(widget.tripId));
     final controllerState = ref.watch(tripsControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(''), // Título vazio pois vai estar na capa
+        title: const Text(''), 
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme:
-            const IconThemeData(color: Colors.white), // Seta branca para voltar
+            const IconThemeData(color: Colors.white), 
       ),
       extendBodyBehindAppBar: true,
       floatingActionButton: FloatingActionButton(
@@ -176,9 +183,16 @@ class TripDetailsScreen extends ConsumerWidget {
       body: tripDetails.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erro ao carregar: $err')),
-        data: (trip) {
+        data: (tripFromProvider) {
+
+          _localTrip ??= tripFromProvider;
+          final currentTrip = _localTrip!;
+
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(tripDetailsProvider(tripId)),
+            onRefresh: () async {
+              setState(() => _localTrip = null); 
+              ref.invalidate(tripDetailsProvider(widget.tripId));
+            },
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
@@ -190,19 +204,18 @@ class TripDetailsScreen extends ConsumerWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.blue.shade800,
-                        image: trip.imageUrl != null
+                        image: currentTrip.imageUrl != null
                             ? DecorationImage(
-                                image: NetworkImage(trip.imageUrl!),
+                                image: NetworkImage(currentTrip.imageUrl!),
                                 fit: BoxFit.cover,
                                 colorFilter: ColorFilter.mode(
-                                  Colors.black.withValues(alpha: 0.3), // Escurece um pouco para ler o texto
+                                  Colors.black.withOpacity(0.3),
                                   BlendMode.darken,
                                 ),
                               )
                             : null,
                       ),
-                      // Se não tiver imagem, mostra um ícone padrão
-                      child: trip.imageUrl == null
+                      child: currentTrip.imageUrl == null
                           ? const Center(
                               child: Icon(Icons.flight_takeoff,
                                   size: 60, color: Colors.white24))
@@ -217,7 +230,7 @@ class TripDetailsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            trip.title,
+                            currentTrip.title,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 28,
@@ -234,7 +247,7 @@ class TripDetailsScreen extends ConsumerWidget {
                                   color: Colors.white70, size: 16),
                               const SizedBox(width: 4),
                               Text(
-                                trip.destination,
+                                currentTrip.destination,
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 16),
                               ),
@@ -243,7 +256,6 @@ class TripDetailsScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // O Botão de Editar Imagem (Canto superior direito)
                     Positioned(
                       top: 40, // Espaço da StatusBar
                       right: 16,
@@ -267,14 +279,14 @@ class TripDetailsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Data
-                      if (trip.startDate != null)
+                      if (currentTrip.startDate != null)
                         Row(
                           children: [
                             const Icon(Icons.calendar_month,
                                 color: Colors.blue),
                             const SizedBox(width: 8),
                             Text(
-                              '${DateFormat('dd/MM/yyyy').format(trip.startDate!)} até ${trip.endDate != null ? DateFormat('dd/MM/yyyy').format(trip.endDate!) : '?'}',
+                              '${DateFormat('dd/MM/yyyy').format(currentTrip.startDate!)} até ${currentTrip.endDate != null ? DateFormat('dd/MM/yyyy').format(currentTrip.endDate!) : '?'}',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ],
@@ -300,7 +312,7 @@ class TripDetailsScreen extends ConsumerWidget {
                         spacing: 8.0,
                         runSpacing: 8.0,
                         children: [
-                          ...trip.participants.map((name) => Chip(
+                          ...currentTrip.participants.map((name) => Chip(
                                 avatar: CircleAvatar(
                                   backgroundColor: Colors.blue.shade100,
                                   child: Text(
@@ -322,7 +334,7 @@ class TripDetailsScreen extends ConsumerWidget {
                           Text('Checklist',
                               style: Theme.of(context).textTheme.titleLarge),
                           Text(
-                            '${trip.tasks.where((t) => t.isCompleted).length}/${trip.tasks.length}',
+                            '${currentTrip.tasks.where((t) => t.isCompleted).length}/${currentTrip.tasks.length}',
                             style: TextStyle(
                                 color: Colors.grey[600],
                                 fontWeight: FontWeight.bold),
@@ -331,7 +343,7 @@ class TripDetailsScreen extends ConsumerWidget {
                       ),
                       const Divider(),
 
-                      if (trip.tasks.isEmpty)
+                      if (currentTrip.tasks.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(32.0),
                           child: Center(
@@ -346,7 +358,7 @@ class TripDetailsScreen extends ConsumerWidget {
                           ),
                         ),
 
-                      ...trip.tasks.map((task) {
+                      ...currentTrip.tasks.map((task) {
                         return Dismissible(
                           key: Key(task.id),
                           direction: DismissDirection.endToStart,
@@ -365,9 +377,21 @@ class TripDetailsScreen extends ConsumerWidget {
                             leading: Checkbox(
                               value: task.isCompleted,
                               onChanged: (bool? value) {
+                                if (value == null) return;
+
+                                setState(() {
+                                  final newTasks = currentTrip.tasks.map((t) {
+                                    if (t.id == task.id) {
+                                      return t.copyWith(isCompleted: value);
+                                    }
+                                    return t;
+                                  }).toList();
+                                  _localTrip = currentTrip.copyWith(tasks: newTasks);
+                                });
+
                                 ref
                                     .read(tripsRepositoryProvider)
-                                    .toggleTask(task.id, value!);
+                                    .toggleTask(task.id, value);
                               },
                             ),
                             title: Text(
