@@ -58,10 +58,6 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                         content: Text('Convite enviado!'),
                         backgroundColor: Colors.green,
                       ),
-                      const SnackBar(
-                        content: Text('Convite enviado!'),
-                        backgroundColor: Colors.green,
-                      ),
                     );
                   }
                 } catch (e) {
@@ -121,7 +117,7 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                   } else {
                     await ref
                         .read(tripsRepositoryProvider)
-                        .addTask(tripId, controller.text);
+                        .addTask(widget.tripId, controller.text);
                   }
 
                   if (context.mounted) {
