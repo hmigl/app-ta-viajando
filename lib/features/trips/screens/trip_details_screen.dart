@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ta_viajando_app/features/trips/data/trips_repository.dart';
-import 'package:ta_viajando_app/features/trips/domain/trip.dart';
+//import 'package:ta_viajando_app/features/trips/domain/trip.dart';
 import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart';
 import 'package:ta_viajando_app/features/trips/providers/trip_provider.dart';
 
@@ -19,8 +19,6 @@ class TripDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
-  Trip? _localTrip;
-
   void _showAddParticipantDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
     showDialog(
@@ -122,6 +120,8 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                         .addTask(widget.tripId, controller.text);
                   }
 
+                  ref.invalidate(tripDetailsProvider(widget.tripId));
+
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -167,10 +167,19 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(tripsRepositoryProvider).deleteTask(taskId);
+            onPressed: () async {
+              await ref.read(tripsRepositoryProvider).deleteTask(taskId);
               ref.invalidate(tripDetailsProvider(widget.tripId));
-              Navigator.pop(context);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Tarefa excluida'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Excluir'),
@@ -186,9 +195,11 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
 
     if (picked != null) {
       final bytes = await picked.readAsBytes();
-      ref
+      await ref
           .read(tripsControllerProvider.notifier)
           .updateImage(widget.tripId, bytes);
+
+      ref.invalidate(tripDetailsProvider(widget.tripId));
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -218,14 +229,10 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
       body: tripDetails.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erro ao carregar: $err')),
-        data: (tripFromProvider) {
-          _localTrip ??= tripFromProvider;
-          final currentTrip = _localTrip!;
-
+        data: (currentTrip) {
           return RefreshIndicator(
             onRefresh: () async {
-              setState(() => _localTrip = null);
-              ref.invalidate(tripDetailsProvider(widget.tripId));
+              return ref.refresh(tripDetailsProvider(widget.tripId).future);
             },
             child: ListView(
               padding: EdgeInsets.zero,
@@ -437,24 +444,15 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                           child: ListTile(
                             leading: Checkbox(
                               value: task.isCompleted,
-                              onChanged: (bool? value) {
+                              onChanged: (bool? value) async {
                                 if (value == null) return;
 
-                                setState(() {
-                                  final newTasks = currentTrip.tasks.map((t) {
-                                    if (t.id == task.id) {
-                                      return t.copyWith(isCompleted: value);
-                                    }
-                                    return t;
-                                  }).toList();
-                                  _localTrip = currentTrip.copyWith(
-                                    tasks: newTasks,
-                                  );
-                                });
-
-                                ref
+                                await ref
                                     .read(tripsRepositoryProvider)
                                     .toggleTask(task.id, value);
+                                ref.invalidate(
+                                  tripDetailsProvider(widget.tripId),
+                                );
                               },
                             ),
                             title: Text(
