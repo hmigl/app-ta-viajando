@@ -33,10 +33,15 @@ class HomeView extends ConsumerWidget {
                 elevation: 2,
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    child: Text(trip.destination[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
-                  ),
+                  leading: trip.imageUrl != null
+                    ? CircleAvatar(
+                        radius: 25,
+                        backgroundImage: NetworkImage(trip.imageUrl!),
+                      )
+                    : CircleAvatar(
+                        backgroundColor: Colors.blueAccent,
+                        child: Text(trip.destination[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+                      ),
                   title: Text(trip.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(
                     "${trip.destination} • ${trip.startDate != null ? '${trip.startDate!.day}/${trip.startDate!.month}' : 'Sem data'}",

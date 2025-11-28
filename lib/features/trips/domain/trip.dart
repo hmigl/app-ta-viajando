@@ -13,6 +13,7 @@ sealed class Trip with _$Trip {
     @JsonKey(name: 'start_date') DateTime? startDate,
     @JsonKey(name: 'end_date') DateTime? endDate,
     @JsonKey(name: 'owner_id') required String ownerId,
+    @JsonKey(name: 'image_url') String? imageUrl,
     @Default([]) List<String> participants,
     @Default([]) List<Task> tasks,
   }) = _Trip;
