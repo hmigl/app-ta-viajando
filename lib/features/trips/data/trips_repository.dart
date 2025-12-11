@@ -52,7 +52,9 @@ class TripsRepository {
     required String destination,
     required DateTime startDate,
     required DateTime? endDate,
-    String? imageUrl, // <--- Novo parâmetro
+    String? imageUrl,
+    double? latitude,  
+    double? longitude, 
   }) async {
     final userId = _supabase.auth.currentUser!.id;
     await _supabase.from('trips').insert({
@@ -61,7 +63,9 @@ class TripsRepository {
       'start_date': startDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'owner_id': userId,
-      'image_url': imageUrl, // <--- Salvando no banco
+      'image_url': imageUrl, 
+      'latitude': latitude,   
+      'longitude': longitude, 
     });
   }
 

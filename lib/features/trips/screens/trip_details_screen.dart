@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:ta_viajando_app/features/trips/data/trips_repository.dart';
 import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart'; 
 import 'package:ta_viajando_app/features/trips/providers/trip_provider.dart';
+import 'package:flutter_map/flutter_map.dart'; 
+import 'package:latlong2/latlong.dart';      
 
 class TripDetailsScreen extends ConsumerWidget {
   final String tripId;
@@ -261,6 +263,59 @@ class TripDetailsScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+
+                if (trip.latitude != null && trip.longitude != null) ...[
+                  Padding(
+                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                     child: Text('Localização', style: Theme.of(context).textTheme.titleLarge), ),
+                     Container(
+                      margin: const EdgeInsets.all(16),
+                      height: 200, // Altura do mapa
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5)),
+                          ],
+                      ),
+                      // O Widget do Mapa vem aqui
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: LatLng(trip.latitude!, trip.longitude!),
+                            initialZoom: 13.0,
+                            interactionOptions: const InteractionOptions(
+                              // Bloqueia rotação para não confundir o usuário, mas permite zoom/pan
+                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate, 
+                            ),
+                        ),
+                        children: [
+                          TileLayer(
+                            // Usa os tiles gratuitos do OpenStreetMap
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.example.app', // Padrão
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: LatLng(trip.latitude!, trip.longitude!),
+                                width: 80,
+                                height: 80,
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: Colors.red, 
+                                  size: 40,
+                                  shadows: [Shadow(blurRadius: 10, color: Colors.black54)],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
