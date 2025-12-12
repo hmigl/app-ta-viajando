@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ta_viajando_app/features/trips/data/trips_repository.dart';
+import 'package:ta_viajando_app/core/services/geocoding_service.dart';
 import 'dart:typed_data';
 
 part 'trips_controller.g.dart';
@@ -10,30 +11,41 @@ class TripsController extends _$TripsController {
   FutureOr<void> build() {
   }
 
-  Future<void> addTrip({
+ Future<void> addTrip({
     required String title,
     required String destination,
     required DateTime startDate,
     required DateTime? endDate,
-    Uint8List? coverImageBytes, // <--- Recebe o arquivo físico
+    Uint8List? coverImageBytes,
   }) async {
     state = const AsyncValue.loading();
     
     state = await AsyncValue.guard(() async {
       String? uploadedUrl;
+      double? lat;
+      double? long;
+
+      // 1. Tenta buscar as coordenadas do destino automaticamente
+      final coordinates = await GeocodingService.getCoordinates(destination);
+      if (coordinates != null) {
+        lat = coordinates.latitude;
+        long = coordinates.longitude;
+      }
       
-      // Se o usuário selecionou foto, faz upload primeiro
+      // 2. Faz o upload da imagem (se houver)
       if (coverImageBytes != null) {
         uploadedUrl = await ref.read(tripsRepositoryProvider).uploadCoverImage(coverImageBytes);
       }
 
-      // Cria a viagem passando a URL (ou null se não tiver foto)
+      // 3. Salva tudo no banco
       await ref.read(tripsRepositoryProvider).addTrip(
         title: title,
         destination: destination,
         startDate: startDate,
         endDate: endDate,
         imageUrl: uploadedUrl,
+        latitude: lat,   // <--- Passa pro repo
+        longitude: long, // <--- Passa pro repo
       );
     });
   }
