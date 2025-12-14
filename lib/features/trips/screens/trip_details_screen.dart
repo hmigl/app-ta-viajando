@@ -320,7 +320,7 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                   ],
                 ),
 
-                if (trip.latitude != null && trip.longitude != null) ...[
+                if (currentTrip.latitude != null && currentTrip.longitude != null) ...[
                   Padding(
                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
                      child: Text('Localização', style: Theme.of(context).textTheme.titleLarge), ),
@@ -338,7 +338,7 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         child: FlutterMap(
                           options: MapOptions(
-                            initialCenter: LatLng(trip.latitude!, trip.longitude!),
+                            initialCenter: LatLng(currentTrip.latitude!, currentTrip.longitude!),
                             initialZoom: 13.0,
                             interactionOptions: const InteractionOptions(
                               // Bloqueia rotação para não confundir o usuário, mas permite zoom/pan
@@ -354,7 +354,7 @@ class _TripDetailsScreenState extends ConsumerState<TripDetailsScreen> {
                           MarkerLayer(
                             markers: [
                               Marker(
-                                point: LatLng(trip.latitude!, trip.longitude!),
+                                point: LatLng(currentTrip.latitude!, currentTrip.longitude!),
                                 width: 80,
                                 height: 80,
                                 child: const Icon(
