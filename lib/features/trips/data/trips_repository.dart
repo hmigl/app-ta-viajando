@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ta_viajando_app/core/services/supabase_provider.dart';
 import 'package:ta_viajando_app/features/trips/domain/trip.dart';
+import 'dart:typed_data';
 
 final tripsRepositoryProvider = Provider<TripsRepository>((ref) {
   final supabase = ref.watch(supabaseProvider);
@@ -25,11 +26,35 @@ class TripsRepository {
     }
   }
 
+  Future<String?> uploadCoverImage(Uint8List imageBytes) async {
+    //trazer o try catch dnv, para ver qual erro ta dando
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final path = 'covers/$fileName';
+    
+    await _supabase.storage.from('trip_covers').uploadBinary(
+      path,
+      imageBytes,
+      fileOptions: const FileOptions(cacheControl: '3600', upsert: false, contentType: 'image/jpeg'),
+    );
+
+    return _supabase.storage.from('trip_covers').getPublicUrl(path);
+    
+  }
+
+  Future<void> updateTripImage(String tripId, String newImageUrl) async {
+    await _supabase.from('trips').update({
+      'image_url': newImageUrl
+    }).eq('id', tripId);
+  }
+
   Future<void> addTrip({
     required String title,
     required String destination,
     required DateTime startDate,
     required DateTime? endDate,
+    String? imageUrl,
+    double? latitude,  
+    double? longitude, 
   }) async {
     final userId = _supabase.auth.currentUser!.id;
     await _supabase.from('trips').insert({
@@ -38,6 +63,9 @@ class TripsRepository {
       'start_date': startDate.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'owner_id': userId,
+      'image_url': imageUrl, 
+      'latitude': latitude,   
+      'longitude': longitude, 
     });
   }
 
