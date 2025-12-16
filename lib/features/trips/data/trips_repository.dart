@@ -70,6 +70,7 @@ class TripsRepository {
   }
 
   Stream<Trip> getTripDetailsStream(String tripId) {
+    // Escuta mudanças na tabela 'trips'
     return _supabase
         .from('trips')
         .stream(primaryKey: ['id'])
@@ -77,6 +78,7 @@ class TripsRepository {
         .asyncMap((event) async {
             if (event.isEmpty) throw Exception('Viagem deletada');
             
+            // Fazemos um fetch manual completo para pegar as relações atualizadas
             final response = await _supabase.from('trips').select('''
               *,
               tasks (*),
@@ -85,7 +87,20 @@ class TripsRepository {
               )
             ''').eq('id', tripId).single();
             
-            return Trip.fromJson(response);
+            final List<dynamic> rawParticipants = response['trip_participants'] ?? [];
+            final List<String> formattedParticipants = rawParticipants.map((item) {
+              final profile = item['profiles'];
+              if (profile == null) return 'Usuário Desconhecido';
+              // Formata como "Nome (email)"
+              return "${profile['full_name']} (${profile['email']})";
+            }).toList().cast<String>();
+
+            // Injetamos a lista formatada no JSON antes de converter
+            // Criamos um novo Map editável, pois a response pode ser imutável
+            final Map<String, dynamic> data = Map<String, dynamic>.from(response);
+            data['participants'] = formattedParticipants;
+            
+            return Trip.fromJson(data);
         });
   }
 
