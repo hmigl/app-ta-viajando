@@ -348,26 +348,58 @@ class TripDetailsScreen extends ConsumerWidget {
                            child: Text("Nenhum participante além de você.", style: TextStyle(color: Colors.grey)),
                          )
                       else
-                        ...trip.participants.map((pString) {
-                          // Tentamos quebrar a string "Nome (email)" que criamos no repository
-                          // Se não der, mostra a string inteira
-                          final parts = pString.split(' (');
-                          final name = parts[0];
-                          final email = parts.length > 1 ? parts[1].replaceAll(')', '') : '';
+                        ...trip.participants.map((participant) {
+                          // Verifica se esse participante é o dono da viagem
+                          final isOwner = participant.id == trip.ownerId;
 
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.blue.shade100,
-                                child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: TextStyle(color: Colors.blue.shade800)),
+                                // Lógica da Imagem: Se tiver URL, mostra foto. Senão, mostra inicial.
+                                backgroundImage: participant.avatarUrl != null 
+                                    ? NetworkImage(participant.avatarUrl!) 
+                                    : null,
+                                child: participant.avatarUrl == null 
+                                    ? Text(
+                                        participant.name.isNotEmpty ? participant.name[0].toUpperCase() : '?', 
+                                        style: TextStyle(color: Colors.blue.shade800)
+                                      ) 
+                                    : null,
                               ),
-                              title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: email.isNotEmpty ? Text(email) : null,
+                              title: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      participant.name, 
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  // --- ETIQUETA DE ORGANIZADOR ---
+                                  if (isOwner) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.orange),
+                                      ),
+                                      child: const Text(
+                                        'Organizador',
+                                        style: TextStyle(fontSize: 10, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                  // -------------------------------
+                                ],
+                              ),
+                              subtitle: participant.email.isNotEmpty ? Text(participant.email) : null,
                             ),
                           );
                         }),
-                      // ------------------------------------------
 
                       const SizedBox(height: 24),
 
