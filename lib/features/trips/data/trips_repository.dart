@@ -131,6 +131,25 @@ class TripsRepository {
     await _supabase.from('accommodations').delete().eq('id', accommodationId);
   }
 
+  Future<void> updateAccommodation({
+    required String accommodationId,
+    required String name,
+    String? address,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    String? bookingReference,
+    double? price,
+  }) async {
+    await _supabase.from('accommodations').update({
+      'name': name,
+      'address': address,
+      'check_in_date': checkIn?.toIso8601String(),
+      'check_out_date': checkOut?.toIso8601String(),
+      'booking_reference': bookingReference,
+      'price_total': price,
+    }).eq('id', accommodationId);
+  }
+
   Future<void> addParticipantByEmail(String tripId, String email) async {
     final response = await _supabase
         .from('profiles')

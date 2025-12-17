@@ -171,7 +171,6 @@ class TripDetailsScreen extends ConsumerWidget {
     }
   }
 
-  // Helper widget para datas da acomodação
   Widget _buildDateChip(IconData icon, DateTime date) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -204,8 +203,47 @@ class TripDetailsScreen extends ConsumerWidget {
         title: const Text(''), 
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme:
-            const IconThemeData(color: Colors.white), 
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            tooltip: 'Excluir Viagem',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Excluir Viagem?'),
+                  content: const Text('Tem certeza que deseja excluir esta viagem? Essa ação não pode ser desfeita.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Excluir'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                if (context.mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text('Excluindo viagem...')),
+                   );
+                }
+                
+                await ref.read(tripsRepositoryProvider).deleteTrip(tripId);
+                
+                if (context.mounted) {
+                  Navigator.pop(context); 
+                }
+              }
+            },
+          ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       floatingActionButton: FloatingActionButton(
@@ -223,7 +261,6 @@ class TripDetailsScreen extends ConsumerWidget {
               children: [
                 Stack(
                   children: [
-                    // A Imagem de Fundo
                     Container(
                       height: 250,
                       width: double.infinity,
@@ -246,7 +283,6 @@ class TripDetailsScreen extends ConsumerWidget {
                                   size: 60, color: Colors.white24))
                           : null,
                     ),
-                    // O Conteúdo sobre a imagem
                     Positioned(
                       bottom: 20, left: 20, right: 20,
                       child: Column(
@@ -328,7 +364,6 @@ class TripDetailsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Data
                       if (trip.startDate != null)
                         Row(
                           children: [
@@ -406,10 +441,6 @@ class TripDetailsScreen extends ConsumerWidget {
                             ),
                           );
                         }),
-
-                      // ==========================================
-                      // NOVA SEÇÃO: HOSPEDAGEM (ACCOMMODATIONS)
-                      // ==========================================
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -442,6 +473,7 @@ class TripDetailsScreen extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // Linha de Título com botões de Ação
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
@@ -451,16 +483,35 @@ class TripDetailsScreen extends ConsumerWidget {
                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                                        onPressed: () async {
-                                           // Poderia adicionar confirmação aqui
-                                           await ref.read(tripsRepositoryProvider).deleteAccommodation(acc.id);
-                                           ref.invalidate(tripDetailsProvider(tripId));
-                                        },
-                                      )
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                                            onPressed: () {
+                                              showModalBottomSheet(
+                                                context: context,
+                                                isScrollControlled: true,
+                                                builder: (_) => AddAccommodationModal(
+                                                  tripId: tripId,
+                                                   accommodation: acc, 
+                                                ),
+                                              );
+                                         
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                                            onPressed: () async {
+                                               await ref.read(tripsRepositoryProvider).deleteAccommodation(acc.id);
+                                               ref.invalidate(tripDetailsProvider(tripId));
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
+                                  
                                   if (acc.address != null)
                                     Padding(
                                       padding: const EdgeInsets.only(bottom: 4),
@@ -499,10 +550,7 @@ class TripDetailsScreen extends ConsumerWidget {
                             ),
                           );
                         }),
-                      // ==========================================
-                      // FIM DA SEÇÃO HOSPEDAGEM
-                      // ==========================================
-
+                      
                       const SizedBox(height: 24),
 
                       Row(
@@ -550,7 +598,6 @@ class TripDetailsScreen extends ConsumerWidget {
                               value: task.isCompleted,
                               onChanged: (bool? value) async {
                                 await ref.read(tripsRepositoryProvider).toggleTask(task.id, value!);
-                                // Atualiza a barra de progresso
                                 ref.invalidate(tripDetailsProvider(tripId));
                               },
                             ),
