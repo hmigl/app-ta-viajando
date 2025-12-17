@@ -77,16 +77,15 @@ class TripsRepository {
         .asyncMap((event) async {
             if (event.isEmpty) throw Exception('Viagem deletada');
             
-            // 1. Buscamos avatar_url e id na query
             final response = await _supabase.from('trips').select('''
               *,
               tasks (*),
+              accommodations (*),
               trip_participants (
                 profiles (id, full_name, email, avatar_url) 
               )
             ''').eq('id', tripId).single();
             
-            // 2. Mapeamos para objetos (JSON) em vez de Strings
             final List<dynamic> rawParticipants = response['trip_participants'] ?? [];
             
             final List<Map<String, dynamic>> formattedParticipants = rawParticipants.map((item) {
@@ -106,6 +105,30 @@ class TripsRepository {
             
             return Trip.fromJson(data);
         });
+  }
+
+  Future<void> addAccommodation({
+    required String tripId,
+    required String name,
+    String? address,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    String? bookingReference,
+    double? price,
+  }) async {
+    await _supabase.from('accommodations').insert({
+      'trip_id': tripId,
+      'name': name,
+      'address': address,
+      'check_in_date': checkIn?.toIso8601String(),
+      'check_out_date': checkOut?.toIso8601String(),
+      'booking_reference': bookingReference,
+      'price_total': price,
+    });
+  }
+
+  Future<void> deleteAccommodation(String accommodationId) async {
+    await _supabase.from('accommodations').delete().eq('id', accommodationId);
   }
 
   Future<void> addParticipantByEmail(String tripId, String email) async {

@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'task.dart';
+import 'accommodation.dart'; 
 
 part 'trip.freezed.dart';
 part 'trip.g.dart';
@@ -37,6 +38,7 @@ sealed class Trip with _$Trip {
     @JsonKey(name: 'longitude') double? longitude,
     @Default([]) List<TripParticipant> participants, 
     @Default([]) List<Task> tasks,
+    @Default([]) List<Accommodation> accommodations,
   }) = _Trip;
 
   factory Trip.fromJson(Map<String, dynamic> json) => _$TripFromJson(json);
