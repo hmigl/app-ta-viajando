@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,7 +6,8 @@ import 'package:ta_viajando_app/features/trips/data/trips_repository.dart';
 import 'package:ta_viajando_app/features/trips/presentation/trips_controller.dart'; 
 import 'package:ta_viajando_app/features/trips/providers/trip_provider.dart';
 import 'package:flutter_map/flutter_map.dart'; 
-import 'package:latlong2/latlong.dart';      
+import 'package:latlong2/latlong.dart';     
+import 'package:ta_viajando_app/features/trips/presentation/add_accommodation_modal.dart'; 
 
 class TripDetailsScreen extends ConsumerWidget {
   final String tripId;
@@ -37,23 +37,19 @@ class TripDetailsScreen extends ConsumerWidget {
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 try {
-                  // 1. Fecha o diálogo primeiro para UX fluida
                   Navigator.pop(context); 
                   
-                  // 2. Mostra loading visual
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(content: Text('Enviando convite...')),
+                        const SnackBar(content: Text('Enviando convite...')),
                     );
                   }
 
-                  // 3. Adiciona no banco
                   await ref.read(tripsRepositoryProvider).addParticipantByEmail(
                         tripId,
                         controller.text.trim(),
                       );
                   
-                  // 4. FORÇA A ATUALIZAÇÃO DA TELA
                   ref.invalidate(tripDetailsProvider(tripId));
 
                   if (context.mounted) {
@@ -109,7 +105,7 @@ class TripDetailsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               if (controller.text.isNotEmpty) {
-                Navigator.pop(context); // Fecha diálogo
+                Navigator.pop(context);
 
                 if (isEditing) {
                   await ref
@@ -121,7 +117,6 @@ class TripDetailsScreen extends ConsumerWidget {
                       .addTask(tripId, controller.text);
                 }
                 
-                // FORÇA A ATUALIZAÇÃO DA TELA PARA A TAREFA APARECER
                 ref.invalidate(tripDetailsProvider(tripId));
               }
             },
@@ -145,9 +140,8 @@ class TripDetailsScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Fecha diálogo
+              Navigator.pop(context);
               await ref.read(tripsRepositoryProvider).deleteTask(taskId);
-              // FORÇA ATUALIZAÇÃO PARA SUMIR DA LISTA
               ref.invalidate(tripDetailsProvider(tripId));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -173,9 +167,28 @@ class TripDetailsScreen extends ConsumerWidget {
 
       await ref.read(tripsControllerProvider.notifier).updateImage(tripId, bytes);
       
-      // Força refresh para mostrar a nova imagem
       ref.invalidate(tripDetailsProvider(tripId));
     }
+  }
+
+  Widget _buildDateChip(IconData icon, DateTime date) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.blue),
+          const SizedBox(width: 4),
+          Text(
+            DateFormat('dd/MM').format(date),
+            style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 
   // --- UI ---
@@ -190,8 +203,47 @@ class TripDetailsScreen extends ConsumerWidget {
         title: const Text(''), 
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme:
-            const IconThemeData(color: Colors.white), 
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            tooltip: 'Excluir Viagem',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Excluir Viagem?'),
+                  content: const Text('Tem certeza que deseja excluir esta viagem? Essa ação não pode ser desfeita.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Excluir'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                if (context.mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text('Excluindo viagem...')),
+                   );
+                }
+                
+                await ref.read(tripsRepositoryProvider).deleteTrip(tripId);
+                
+                if (context.mounted) {
+                  Navigator.pop(context); 
+                }
+              }
+            },
+          ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       floatingActionButton: FloatingActionButton(
@@ -203,14 +255,12 @@ class TripDetailsScreen extends ConsumerWidget {
         error: (err, stack) => Center(child: Text('Erro ao carregar: $err')),
         data: (trip) {
           return RefreshIndicator(
-            // Permite puxar pra baixo para atualizar manualmente também
             onRefresh: () async => ref.invalidate(tripDetailsProvider(tripId)),
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 Stack(
                   children: [
-                    // A Imagem de Fundo
                     Container(
                       height: 250,
                       width: double.infinity,
@@ -233,7 +283,6 @@ class TripDetailsScreen extends ConsumerWidget {
                                   size: 60, color: Colors.white24))
                           : null,
                     ),
-                    // O Conteúdo sobre a imagem
                     Positioned(
                       bottom: 20, left: 20, right: 20,
                       child: Column(
@@ -315,7 +364,6 @@ class TripDetailsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Data
                       if (trip.startDate != null)
                         Row(
                           children: [
@@ -340,23 +388,19 @@ class TripDetailsScreen extends ConsumerWidget {
                         ],
                       ),
                       
-                      // --- LISTA DE PARTICIPANTES ATUALIZADA ---
                       if (trip.participants.isEmpty)
-                         const Padding(
-                           padding: EdgeInsets.all(8.0),
-                           child: Text("Nenhum participante além de você.", style: TextStyle(color: Colors.grey)),
-                         )
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text("Nenhum participante além de você.", style: TextStyle(color: Colors.grey)),
+                          )
                       else
                         ...trip.participants.map((participant) {
-                          // Verifica se esse participante é o dono da viagem
                           final isOwner = participant.id == trip.ownerId;
-
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.blue.shade100,
-                                // Lógica da Imagem: Se tiver URL, mostra foto. Senão, mostra inicial.
                                 backgroundImage: participant.avatarUrl != null 
                                     ? NetworkImage(participant.avatarUrl!) 
                                     : null,
@@ -376,7 +420,6 @@ class TripDetailsScreen extends ConsumerWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  // --- ETIQUETA DE ORGANIZADOR ---
                                   if (isOwner) ...[
                                     const SizedBox(width: 8),
                                     Container(
@@ -392,14 +435,122 @@ class TripDetailsScreen extends ConsumerWidget {
                                       ),
                                     ),
                                   ],
-                                  // -------------------------------
                                 ],
                               ),
                               subtitle: participant.email.isNotEmpty ? Text(participant.email) : null,
                             ),
                           );
                         }),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Hospedagem', style: Theme.of(context).textTheme.titleLarge),
+                          IconButton(
+                            icon: const Icon(Icons.hotel, color: Colors.blue),
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) => AddAccommodationModal(tripId: tripId),
+                              );
+                            },
+                          )
+                        ],
+                      ),
 
+                      if (trip.accommodations.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text("Nenhuma hospedagem cadastrada.", style: TextStyle(color: Colors.grey)),
+                        )
+                      else
+                        ...trip.accommodations.map((acc) {
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Linha de Título com botões de Ação
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          acc.name, 
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                                            onPressed: () {
+                                              showModalBottomSheet(
+                                                context: context,
+                                                isScrollControlled: true,
+                                                builder: (_) => AddAccommodationModal(
+                                                  tripId: tripId,
+                                                   accommodation: acc, 
+                                                ),
+                                              );
+                                         
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                                            onPressed: () async {
+                                               await ref.read(tripsRepositoryProvider).deleteAccommodation(acc.id);
+                                               ref.invalidate(tripDetailsProvider(tripId));
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  if (acc.address != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                                          const SizedBox(width: 4),
+                                          Expanded(child: Text(acc.address!, style: const TextStyle(color: Colors.grey))),
+                                        ],
+                                      ),
+                                    ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      if (acc.checkInDate != null)
+                                        _buildDateChip(Icons.login, acc.checkInDate!),
+                                      const SizedBox(width: 8),
+                                      if (acc.checkOutDate != null)
+                                        _buildDateChip(Icons.logout, acc.checkOutDate!),
+                                    ],
+                                  ),
+                                  if (acc.bookingReference != null || acc.priceTotal != null) ...[
+                                     const Divider(),
+                                     Row(
+                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                       children: [
+                                         if (acc.bookingReference != null) 
+                                           Text('Reserva: ${acc.bookingReference}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                                         if (acc.priceTotal != null) 
+                                           Text('R\$ ${acc.priceTotal!.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                       ],
+                                     )
+                                  ]
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      
                       const SizedBox(height: 24),
 
                       Row(
@@ -447,7 +598,6 @@ class TripDetailsScreen extends ConsumerWidget {
                               value: task.isCompleted,
                               onChanged: (bool? value) async {
                                 await ref.read(tripsRepositoryProvider).toggleTask(task.id, value!);
-                                // Atualiza a barra de progresso
                                 ref.invalidate(tripDetailsProvider(tripId));
                               },
                             ),
