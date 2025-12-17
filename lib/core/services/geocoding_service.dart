@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:flutter/foundation.dart';
 
 class GeocodingService {
   // Usa a API gratuita do OpenStreetMap (Nominatim)
@@ -24,7 +25,7 @@ class GeocodingService {
       }
       return null;
     } catch (e) {
-      print('Erro ao buscar coordenadas: $e');
+      debugPrint('Erro ao buscar coordenadas: $e');
       return null;
     }
   }

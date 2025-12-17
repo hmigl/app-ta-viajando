@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:json_annotation/json_annotation.dart';
 import 'task.dart';
 
 part 'trip.freezed.dart';
@@ -11,6 +10,7 @@ sealed class TripParticipant with _$TripParticipant {
     required String name,
     required String email,
     required String id, 
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'avatar_url') String? avatarUrl,
   }) = _TripParticipant;
 
@@ -23,11 +23,17 @@ sealed class Trip with _$Trip {
     required String id,
     required String title,
     required String destination,
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'start_date') DateTime? startDate,
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'end_date') DateTime? endDate,
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'owner_id') required String ownerId,
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'image_url') String? imageUrl,
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'latitude') double? latitude,   
+    // ignore: invalid_annotation_target
     @JsonKey(name: 'longitude') double? longitude,
     @Default([]) List<TripParticipant> participants, 
     @Default([]) List<Task> tasks,

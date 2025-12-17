@@ -25,9 +25,6 @@ class _AuthenticationViewState extends ConsumerState<AuthenticationView> {
 
   @override
   Widget build(BuildContext context) {
-    // Usamos MediaQuery para saber a altura da tela
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       
       body: Container(
