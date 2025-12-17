@@ -77,15 +77,34 @@ class TripsRepository {
         .asyncMap((event) async {
             if (event.isEmpty) throw Exception('Viagem deletada');
             
+            // 1. Buscamos avatar_url e id na query
             final response = await _supabase.from('trips').select('''
               *,
               tasks (*),
               trip_participants (
-                profiles (full_name, email) 
+                profiles (id, full_name, email, avatar_url) 
               )
             ''').eq('id', tripId).single();
             
-            return Trip.fromJson(response);
+            // 2. Mapeamos para objetos (JSON) em vez de Strings
+            final List<dynamic> rawParticipants = response['trip_participants'] ?? [];
+            
+            final List<Map<String, dynamic>> formattedParticipants = rawParticipants.map((item) {
+              final profile = item['profiles'];
+              if (profile == null) return null;
+              
+              return {
+                'name': profile['full_name'] ?? 'Sem Nome',
+                'email': profile['email'] ?? '',
+                'id': profile['id'],
+                'avatar_url': profile['avatar_url'],
+              };
+            }).whereType<Map<String, dynamic>>().toList(); // Remove nulos
+
+            final Map<String, dynamic> data = Map<String, dynamic>.from(response);
+            data['participants'] = formattedParticipants;
+            
+            return Trip.fromJson(data);
         });
   }
 

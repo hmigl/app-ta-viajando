@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 part 'auth_provider.g.dart';
 
@@ -18,7 +19,15 @@ class Auth extends _$Auth {
 
   Future<void> signInWithGoogle() async {
     try {
-      await Supabase.instance.client.auth.signInWithOAuth(OAuthProvider.google);
+      // Definimos a URL de retorno explicitamente
+      final redirectUrl = kIsWeb 
+          ? 'http://localhost:3000/' 
+          : 'io.supabase.flutter://callback'; // (Opcional para mobile depois)
+
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectUrl, // <--- FORÇAMOS AQUI
+      );
     } catch (e) {
       debugPrint('Error signing in with Google (Supabase): $e');
       rethrow;

@@ -38,22 +38,37 @@ class TripDetailsScreen extends ConsumerWidget {
             onPressed: () async {
               if (controller.text.isNotEmpty) {
                 try {
-                  Navigator.pop(
-                      context); // Fecha antes para evitar travamento visual
+                  // 1. Fecha o diálogo primeiro para UX fluida
+                  Navigator.pop(context); 
+                  
+                  // 2. Mostra loading visual
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                       const SnackBar(content: Text('Enviando convite...')),
+                    );
+                  }
+
+                  // 3. Adiciona no banco
                   await ref.read(tripsRepositoryProvider).addParticipantByEmail(
                         tripId,
                         controller.text.trim(),
                       );
+                  
+                  // 4. FORÇA A ATUALIZAÇÃO DA TELA
+                  ref.invalidate(tripDetailsProvider(tripId));
+
                   if (context.mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Convite enviado!'),
+                        content: Text('Participante adicionado com sucesso!'),
                         backgroundColor: Colors.green,
                       ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -93,18 +108,22 @@ class TripDetailsScreen extends ConsumerWidget {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.isNotEmpty) {
+                Navigator.pop(context); // Fecha diálogo
+
                 if (isEditing) {
-                  ref
+                  await ref
                       .read(tripsRepositoryProvider)
                       .updateTaskTitle(taskId, controller.text);
                 } else {
-                  ref
+                  await ref
                       .read(tripsRepositoryProvider)
                       .addTask(tripId, controller.text);
                 }
-                Navigator.pop(context);
+                
+                // FORÇA A ATUALIZAÇÃO DA TELA PARA A TAREFA APARECER
+                ref.invalidate(tripDetailsProvider(tripId));
               }
             },
             child: Text(isEditing ? 'Salvar' : 'Adicionar'),
@@ -126,9 +145,11 @@ class TripDetailsScreen extends ConsumerWidget {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(tripsRepositoryProvider).deleteTask(taskId);
-              Navigator.pop(context);
+            onPressed: () async {
+              Navigator.pop(context); // Fecha diálogo
+              await ref.read(tripsRepositoryProvider).deleteTask(taskId);
+              // FORÇA ATUALIZAÇÃO PARA SUMIR DA LISTA
+              ref.invalidate(tripDetailsProvider(tripId));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Excluir'),
@@ -144,14 +165,17 @@ class TripDetailsScreen extends ConsumerWidget {
 
     if (picked != null) {
       final bytes = await picked.readAsBytes();
-      // Chama o controller para atualizar
-      ref.read(tripsControllerProvider.notifier).updateImage(tripId, bytes);
-
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Atualizando capa... aguarde.')),
         );
       }
+
+      await ref.read(tripsControllerProvider.notifier).updateImage(tripId, bytes);
+      
+      // Força refresh para mostrar a nova imagem
+      ref.invalidate(tripDetailsProvider(tripId));
     }
   }
 
@@ -164,11 +188,11 @@ class TripDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(''), // Título vazio pois vai estar na capa
+        title: const Text(''), 
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme:
-            const IconThemeData(color: Colors.white), // Seta branca para voltar
+            const IconThemeData(color: Colors.white), 
       ),
       extendBodyBehindAppBar: true,
       floatingActionButton: FloatingActionButton(
@@ -180,6 +204,7 @@ class TripDetailsScreen extends ConsumerWidget {
         error: (err, stack) => Center(child: Text('Erro ao carregar: $err')),
         data: (trip) {
           return RefreshIndicator(
+            // Permite puxar pra baixo para atualizar manualmente também
             onRefresh: () async => ref.invalidate(tripDetailsProvider(tripId)),
             child: ListView(
               padding: EdgeInsets.zero,
@@ -197,24 +222,21 @@ class TripDetailsScreen extends ConsumerWidget {
                                 image: NetworkImage(trip.imageUrl!),
                                 fit: BoxFit.cover,
                                 colorFilter: ColorFilter.mode(
-                                  Colors.black.withValues(alpha: 0.3), // Escurece um pouco para ler o texto
+                                  Colors.black.withValues(alpha: 0.3),
                                   BlendMode.darken,
                                 ),
                               )
                             : null,
                       ),
-                      // Se não tiver imagem, mostra um ícone padrão
                       child: trip.imageUrl == null
                           ? const Center(
                               child: Icon(Icons.flight_takeoff,
                                   size: 60, color: Colors.white24))
                           : null,
                     ),
-                    // O Conteúdo sobre a imagem (Título e Datas)
+                    // O Conteúdo sobre a imagem
                     Positioned(
-                      bottom: 20,
-                      left: 20,
-                      right: 20,
+                      bottom: 20, left: 20, right: 20,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -224,39 +246,29 @@ class TripDetailsScreen extends ConsumerWidget {
                               color: Colors.white,
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              shadows: [
-                                Shadow(color: Colors.black45, blurRadius: 10)
-                              ],
+                              shadows: [Shadow(color: Colors.black45, blurRadius: 10)],
                             ),
                           ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on,
-                                  color: Colors.white70, size: 16),
+                              const Icon(Icons.location_on, color: Colors.white70, size: 16),
                               const SizedBox(width: 4),
-                              Text(
-                                trip.destination,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 16),
-                              ),
+                              Text(trip.destination, style: const TextStyle(color: Colors.white, fontSize: 16)),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    // O Botão de Editar Imagem (Canto superior direito)
                     Positioned(
-                      top: 40, // Espaço da StatusBar
-                      right: 16,
+                      top: 40, right: 16,
                       child: controllerState.isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : IconButton(
                               onPressed: () => _pickAndEditImage(context, ref),
                               icon: const CircleAvatar(
                                 backgroundColor: Colors.black45,
-                                child: Icon(Icons.edit,
-                                    color: Colors.white, size: 20),
+                                child: Icon(Icons.edit, color: Colors.white, size: 20),
                               ),
                               tooltip: 'Alterar Capa',
                             ),
@@ -267,49 +279,32 @@ class TripDetailsScreen extends ConsumerWidget {
                 if (trip.latitude != null && trip.longitude != null) ...[
                   Padding(
                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                     child: Text('Localização', style: Theme.of(context).textTheme.titleLarge), ),
-                     Container(
-                      margin: const EdgeInsets.all(16),
-                      height: 200, // Altura do mapa
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5)),
-                          ],
-                      ),
-                      // O Widget do Mapa vem aqui
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: FlutterMap(
-                          options: MapOptions(
-                            initialCenter: LatLng(trip.latitude!, trip.longitude!),
-                            initialZoom: 13.0,
-                            interactionOptions: const InteractionOptions(
-                              // Bloqueia rotação para não confundir o usuário, mas permite zoom/pan
-                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate, 
-                            ),
+                     child: Text('Localização', style: Theme.of(context).textTheme.titleLarge), 
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(trip.latitude!, trip.longitude!),
+                          initialZoom: 13.0,
+                          interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
                         ),
                         children: [
-                          TileLayer(
-                            // Usa os tiles gratuitos do OpenStreetMap
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.app', // Padrão
-                          ),
-                          MarkerLayer(
-                            markers: [
+                          TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.example.app'),
+                          MarkerLayer(markers: [
                               Marker(
                                 point: LatLng(trip.latitude!, trip.longitude!),
-                                width: 80,
-                                height: 80,
-                                child: const Icon(
-                                  Icons.location_on,
-                                  color: Colors.red, 
-                                  size: 40,
-                                  shadows: [Shadow(blurRadius: 10, color: Colors.black54)],
-                                ),
+                                width: 80, height: 80,
+                                child: const Icon(Icons.location_on, color: Colors.red, size: 40, shadows: [Shadow(blurRadius: 10, color: Colors.black54)]),
                               ),
-                            ],
-                          ),
+                          ]),
                         ],
                       ),
                     ),
@@ -325,8 +320,7 @@ class TripDetailsScreen extends ConsumerWidget {
                       if (trip.startDate != null)
                         Row(
                           children: [
-                            const Icon(Icons.calendar_month,
-                                color: Colors.blue),
+                            const Icon(Icons.calendar_month, color: Colors.blue),
                             const SizedBox(width: 8),
                             Text(
                               '${DateFormat('dd/MM/yyyy').format(trip.startDate!)} até ${trip.endDate != null ? DateFormat('dd/MM/yyyy').format(trip.endDate!) : '?'}',
@@ -339,48 +333,83 @@ class TripDetailsScreen extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Participantes',
-                              style: Theme.of(context).textTheme.titleLarge),
+                          Text('Participantes', style: Theme.of(context).textTheme.titleLarge),
                           IconButton(
-                            icon: const Icon(Icons.person_add_alt_1,
-                                color: Colors.blue),
-                            onPressed: () =>
-                                _showAddParticipantDialog(context, ref),
-                            tooltip: "Adicionar participante",
+                            icon: const Icon(Icons.person_add_alt_1, color: Colors.blue),
+                            onPressed: () => _showAddParticipantDialog(context, ref),
                           )
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: [
-                          ...trip.participants.map((name) => Chip(
-                                avatar: CircleAvatar(
-                                  backgroundColor: Colors.blue.shade100,
-                                  child: Text(
-                                      name.isNotEmpty
-                                          ? name[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(fontSize: 12)),
-                                ),
-                                label: Text(name),
-                              )),
-                        ],
-                      ),
+                      
+                      // --- LISTA DE PARTICIPANTES ATUALIZADA ---
+                      if (trip.participants.isEmpty)
+                         const Padding(
+                           padding: EdgeInsets.all(8.0),
+                           child: Text("Nenhum participante além de você.", style: TextStyle(color: Colors.grey)),
+                         )
+                      else
+                        ...trip.participants.map((participant) {
+                          // Verifica se esse participante é o dono da viagem
+                          final isOwner = participant.id == trip.ownerId;
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.blue.shade100,
+                                // Lógica da Imagem: Se tiver URL, mostra foto. Senão, mostra inicial.
+                                backgroundImage: participant.avatarUrl != null 
+                                    ? NetworkImage(participant.avatarUrl!) 
+                                    : null,
+                                child: participant.avatarUrl == null 
+                                    ? Text(
+                                        participant.name.isNotEmpty ? participant.name[0].toUpperCase() : '?', 
+                                        style: TextStyle(color: Colors.blue.shade800)
+                                      ) 
+                                    : null,
+                              ),
+                              title: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      participant.name, 
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  // --- ETIQUETA DE ORGANIZADOR ---
+                                  if (isOwner) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.orange),
+                                      ),
+                                      child: const Text(
+                                        'Organizador',
+                                        style: TextStyle(fontSize: 10, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                  // -------------------------------
+                                ],
+                              ),
+                              subtitle: participant.email.isNotEmpty ? Text(participant.email) : null,
+                            ),
+                          );
+                        }),
 
                       const SizedBox(height: 24),
 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Checklist',
-                              style: Theme.of(context).textTheme.titleLarge),
+                          Text('Checklist', style: Theme.of(context).textTheme.titleLarge),
                           Text(
                             '${trip.tasks.where((t) => t.isCompleted).length}/${trip.tasks.length}',
-                            style: TextStyle(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -392,8 +421,7 @@ class TripDetailsScreen extends ConsumerWidget {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.checklist_rtl,
-                                    size: 48, color: Colors.grey),
+                                Icon(Icons.checklist_rtl, size: 48, color: Colors.grey),
                                 SizedBox(height: 8),
                                 Text('Nenhuma tarefa ainda.'),
                               ],
@@ -409,8 +437,7 @@ class TripDetailsScreen extends ConsumerWidget {
                             color: Colors.red,
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
-                            child:
-                                const Icon(Icons.delete, color: Colors.white),
+                            child: const Icon(Icons.delete, color: Colors.white),
                           ),
                           confirmDismiss: (direction) async {
                             _confirmDeleteTask(context, ref, task.id);
@@ -419,28 +446,23 @@ class TripDetailsScreen extends ConsumerWidget {
                           child: ListTile(
                             leading: Checkbox(
                               value: task.isCompleted,
-                              onChanged: (bool? value) {
-                                ref
-                                    .read(tripsRepositoryProvider)
-                                    .toggleTask(task.id, value!);
+                              onChanged: (bool? value) async {
+                                await ref.read(tripsRepositoryProvider).toggleTask(task.id, value!);
+                                // Atualiza a barra de progresso
+                                ref.invalidate(tripDetailsProvider(tripId));
                               },
                             ),
                             title: Text(
                               task.title,
                               style: TextStyle(
-                                decoration: task.isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
+                                decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
                                 color: task.isCompleted ? Colors.grey : null,
                               ),
                             ),
-                            onLongPress: () => _showTaskDialog(context, ref,
-                                taskId: task.id, currentTitle: task.title),
+                            onLongPress: () => _showTaskDialog(context, ref, taskId: task.id, currentTitle: task.title),
                             trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  size: 20, color: Colors.grey),
-                              onPressed: () =>
-                                  _confirmDeleteTask(context, ref, task.id),
+                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                              onPressed: () => _confirmDeleteTask(context, ref, task.id),
                             ),
                           ),
                         );
